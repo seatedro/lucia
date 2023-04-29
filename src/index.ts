@@ -13,6 +13,29 @@ app.get("/", (req, res) => {
   res.send("Hello world!");
 });
 
+app.get("/user", async (req, res) => {
+  try {
+    const schema = z.object({
+      query: z.object({
+        userId: z.string(),
+      }),
+    });
+
+    const parse = zParse(schema, req);
+    if (!parse.success) {
+      return res.status(400).json({ error: "Invalid request" });
+    }
+
+    const { userId } = parse.data.query;
+
+    const user = await auth.getUser(userId);
+    return res.json(user);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/user", async (req, res) => {
   try {
     const schema = z.object({
