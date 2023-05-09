@@ -74,6 +74,7 @@ export const auth = lucia({
   adapter: adapter(mongoose),
   env: "DEV",
   middleware: express(),
+  origin: ["https://airecruiter.us"],
   transformDatabaseUser: (user) => {
     return {
       userId: user.id,
@@ -82,5 +83,4 @@ export const auth = lucia({
     };
   },
 });
-
 export type Auth = typeof auth;

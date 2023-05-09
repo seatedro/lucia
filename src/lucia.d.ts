@@ -1,27 +1,10 @@
-import type { Response } from "express";
-import type { Auth, AuthRequest } from "lucia-auth";
-
-// app.d.ts
+// src/lucia.d.ts
 /// <reference types="lucia-auth" />
 declare namespace Lucia {
   // ...
-  interface UserAttributes {
+  type Auth = import("./auth.js").Auth;
+  type UserAttributes = {
     name: string;
     email: string;
   }
 }
-
-// declare global {
-//   namespace Express {
-//     interface Response {
-//       locals: {
-//         auth: AuthRequest;
-//       };
-//     }
-//   }
-// }
-export type ResponseWithAuth = {
-  locals: {
-    auth: AuthRequest<Auth>;
-  };
-} & Response;

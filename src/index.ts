@@ -5,18 +5,17 @@ import mongoose from "mongoose";
 import { env, zParse } from "./env.js";
 import { z } from "zod";
 import { auth } from "./auth.js";
-import type { ResponseWithAuth } from "./lucia.js";
+import type { ResponseWithAuth } from "./app.js";
 
 const app = express();
 app.use(express.json());
 
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.send("Hello world!");
 });
 
 app.use((req, res: ResponseWithAuth, next) => {
   res.locals.auth = auth.handleRequest(req, res);
-  console.log(res.locals.auth);
   next();
 });
 
@@ -43,13 +42,19 @@ app.get("/user", async (req, res) => {
   }
 });
 
-app.post("/user", async (req, res) => {
+app.post("/register", async (req, res: ResponseWithAuth) => {
   try {
+    const authRequest = auth.handleRequest(req, res);
+    console.log(`Request origin: ${req.headers.origin}`);
+
     const schema = z.object({
+      // headers: z.object({
+      //   origin: z.string(),
+      // }),
       body: z.object({
         email: z.string().email(),
-        name: z.string().min(1),
         password: z.string().min(8),
+        name: z.string(),
       }),
     });
 
@@ -58,7 +63,16 @@ app.post("/user", async (req, res) => {
       return res.status(400).json({ error: "Invalid request" });
     }
 
-    const { email, name, password } = parse.data.body;
+    // CSRF Check
+    // const { origin } = parse.data.headers;
+    // const url = req.url;
+    // const isValidRequest = !!origin && origin == url;
+
+    // if (!isValidRequest) {
+    //   return res.status(403).send();
+    // }
+
+    const { email, password, name } = parse.data.body;
 
     const user = await auth.createUser({
       primaryKey: {
@@ -67,32 +81,40 @@ app.post("/user", async (req, res) => {
         password,
       },
       attributes: {
-        name,
         email,
+        name,
       },
     });
-    return res.json(user);
+
+    const session = await auth.createSession(user.userId);
+    authRequest.setSession(session);
+
+    return res.status(302).send({
+      message: "User created successfully!"
+    });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(400).send();
   }
 });
 
 app.post("/login", async (req, res: ResponseWithAuth) => {
   try {
-    const authRequest = res.locals.auth;
-    const { session, user } = await authRequest.validateUser();
-    console.log(session, user);
+    const authRequest = auth.handleRequest(req, res);
+    const session = await authRequest.validate();
+    console.log(`Session already exists: ${session}`);
     if (session) {
-      if (session.fresh) {
-        authRequest.setSession(session);
-      }
-      return res.json({
+      // if (session.fresh) {
+      //   authRequest.setSession(session);
+      // }
+      return res.status(302).json({
         session,
-        user,
       });
     }
     const schema = z.object({
+      // headers: z.object({
+      //   origin: z.string(),
+      // }),
       body: z.object({
         email: z.string().email(),
         password: z.string().min(8),
@@ -104,6 +126,13 @@ app.post("/login", async (req, res: ResponseWithAuth) => {
       return res.status(400).json({ error: "Invalid request" });
     }
 
+    // CSRF Check
+    // const { origin } = parse.data.headers;
+    // const isValidRequest = !!origin && origin == "https://airecruiter.us";
+
+    // if (!isValidRequest) {
+    //   return res.status(403).send();
+    // }
     const { email, password } = parse.data.body;
 
     const { userId, providerUserId } = await auth.useKey(
@@ -114,7 +143,7 @@ app.post("/login", async (req, res: ResponseWithAuth) => {
     const newSession = await auth.createSession(userId);
     authRequest.setSession(newSession);
 
-    return res.json({
+    return res.status(302).json({
       session: newSession,
       email: providerUserId,
     });
