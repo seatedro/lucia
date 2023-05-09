@@ -7,7 +7,7 @@
   "scripts": {
     "start": "run-p watch:build watch:run",
     "watch:build": "swc src --out-dir dist --watch",
-    "watch:run": "nodemon -e js --watch dist dist/index.js"
+    "watch:run": "nodemon -e js,ts --watch dist --enable-source-maps dist/index.js"
   },
   "keywords": [],
   "author": "",

@@ -1,6 +1,6 @@
 import adapter from "@lucia-auth/adapter-mongoose";
 import lucia from "lucia-auth";
-import { node } from "lucia-auth/middleware";
+import { express } from "lucia-auth/middleware";
 import "lucia-auth/polyfill/node";
 import mongoose from "mongoose";
 
@@ -73,7 +73,7 @@ export const auth = lucia({
   // ,,,
   adapter: adapter(mongoose),
   env: "DEV",
-  middleware: node(),
+  middleware: express(),
   transformDatabaseUser: (user) => {
     return {
       userId: user.id,
