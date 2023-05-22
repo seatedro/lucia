@@ -19,22 +19,13 @@ app.use((req, res: ResponseWithAuth, next) => {
   next();
 });
 
-app.get("/user", async (req, res) => {
+app.get("/user", async (req, res: ResponseWithAuth) => {
   try {
-    const schema = z.object({
-      query: z.object({
-        userId: z.string(),
-      }),
-    });
-
-    const parse = zParse(schema, req);
-    if (!parse.success) {
-      return res.status(400).json({ error: "Invalid request" });
+    const { user } = await res.locals.auth.validateUser();
+    if (!user) {
+      res.header("location", "/login");
+      return res.status(302).send();
     }
-
-    const { userId } = parse.data.query;
-
-    const user = await auth.getUser(userId);
     return res.json(user);
   } catch (err) {
     console.error(err);
@@ -90,7 +81,7 @@ app.post("/register", async (req, res: ResponseWithAuth) => {
     authRequest.setSession(session);
 
     return res.status(302).send({
-      message: "User created successfully!"
+      message: "User created successfully!",
     });
   } catch (err) {
     console.error(err);
